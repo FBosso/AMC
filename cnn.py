@@ -20,21 +20,22 @@ class IQ_cnn(nn.Module):
         
         self.depth_conv5 = DepthwiseSeparableConv(128,128)
         
-        self.max_pool2 = nn.MaxPool2d((14,3))
+        self.max_pool2 = nn.MaxPool2d((65,1))
         
         self.fc = nn.Linear(64,64)
         
     def forward(self,x):
         
-        x = self.conv1(x)
-        x = self.max_pool(x)
+        x = self.conv1(x) #ok 1
+        x = self.max_pool(x) #ok 1
         
-        x = self.depth_conv1(x)
+        x = self.depth_conv1(x) #no ok
         x = self.depth_conv2(x)
         x = self.depth_conv3(x)
         x = self.depth_conv4(x)
+        #x = self.depth_conv5(x)
         x = self.max_pool2(x)
-       # x = self.depth_conv5(x)
+        x = x.squeeze()
         
         return x
         
@@ -74,7 +75,7 @@ class DepthwiseSeparableConv(nn.Module):
         self.pooling = pooling
 
         self.depthwise = nn.Conv2d(
-            in_channels, in_channels, kernel_size=(3, 1),
+            in_channels, in_channels, kernel_size=(1, 3),
             stride=stride, padding=padding, groups=in_channels, bias=bias
         )
         
@@ -86,7 +87,7 @@ class DepthwiseSeparableConv(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
         if self.pooling:
-            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            self.pool = nn.MaxPool2d(kernel_size=(2,1), stride=2)
 
     def forward(self, x):
         x = self.depthwise(x)
