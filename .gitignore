@@ -1,0 +1,5 @@
+amc/
+__pycache__/
+.notebook/
+HKDD_AMC12/
+.vscode/
