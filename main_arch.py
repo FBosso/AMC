@@ -56,7 +56,7 @@ data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32)  # sh
 label_base = np.arange(0, 12)
 label_train = label_base.repeat(1000)
 label_train = np.tile(label_train, 21)
-n_classes = 21
+n_classes = 12
 label_train_oh = torch.tensor(np.eye(n_classes)[label_train], dtype=torch.float32)
 
 # Create Dataset and DataLoader
@@ -141,7 +141,7 @@ with torch.inference_mode():
     
     from torchmetrics import Accuracy
     
-    accuracy = Accuracy(task="multiclass", num_classes=21).to(device)
+    accuracy = Accuracy(task="multiclass", num_classes=12).to(device)
     acc = accuracy(y_hat_probs, label_test_oh)
     print(f"Accuracy: {acc}")
 
