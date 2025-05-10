@@ -1,9 +1,3 @@
----
-noteId: "6d5efcc02d8411f08e21ed8c3d313aa3"
-tags: []
-
----
-
 # Self-Attention Based Automatic Modulation Classification
 
 This repository contains a reimplementation and extension of the work presented in the paper:  
