@@ -56,7 +56,7 @@ data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32)  # sh
 label_base = np.arange(0, 12)
 label_train = label_base.repeat(1000)
 label_train = np.tile(label_train, 21)
-n_classes = 12
+n_classes = 21
 label_train_oh = torch.tensor(np.eye(n_classes)[label_train], dtype=torch.float32)
 
 # Create Dataset and DataLoader
@@ -72,7 +72,7 @@ criterion = nn.CrossEntropyLoss()
 #%%
 
 # Training loop
-epochs = 50
+epochs = 30
 training_loss = []
 
 for epoch in range(epochs):
@@ -96,6 +96,9 @@ for epoch in range(epochs):
     training_loss.append(avg_loss)
     print(f"Epoch {epoch+1}/{epochs} - Avg Loss: {avg_loss:.4f}")
 
+#%%
+
+
 # Plot training loss
 plt.figure(figsize=(8, 5))
 plt.plot(training_loss, label="Training Loss")
@@ -114,8 +117,8 @@ plt.show()
 
 # Load data
 train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_test.mat')
-data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32)  # shape: (N, 1, 128, 2)
-data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32)  # shape: (N, 1, 228)
+data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32).to(device)[0:10000,:,:,:]  # shape: (N, 1, 128, 2)
+data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32).to(device)[0:10000,:]  # shape: (N, 1, 228)
 
 #%%
 
@@ -126,8 +129,8 @@ label_test = np.tile(label_test, 21)  # the class label of test set
 # modulation_name = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK', '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
 # all_dB = list(np.arange(-20, 21, 2))
 n_classes = 12
-label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32)
-
+label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32).to(device)[0:10000,:]
+label_test_oh = torch.argmax(label_test_oh, dim=1)
 
 #%%
 
@@ -138,7 +141,7 @@ with torch.inference_mode():
     
     from torchmetrics import Accuracy
     
-    accuracy = Accuracy(task="multiclass", num_classes=21)
+    accuracy = Accuracy(task="multiclass", num_classes=21).to(device)
     acc = accuracy(y_hat_probs, label_test_oh)
     print(f"Accuracy: {acc}")
 
