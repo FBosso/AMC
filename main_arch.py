@@ -117,8 +117,8 @@ plt.show()
 
 # Load data
 train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_test.mat')
-data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32).to(device)[0:10000,:,:,:]  # shape: (N, 1, 128, 2)
-data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32).to(device)[0:10000,:]  # shape: (N, 1, 228)
+data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32).to(device)[125500:,:,:,:]  # shape: (N, 1, 128, 2)
+data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32).to(device)[125500:,:]  # shape: (N, 1, 228)
 
 #%%
 
