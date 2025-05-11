@@ -25,6 +25,42 @@ def return_data_train():
     return data_raw, data_feature, label_train_oh
 
 
+def return_data_val():
+    # Load data
+    train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_test.mat')
+    data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32)  # shape: (N, 1, 128, 2)
+    data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32)  # shape: (N, 1, 228)
+
+    # Create labels
+    label_base = np.arange(0, 12)
+    label_test = label_base.repeat(500)              # 500 samples per class
+    label_test = np.tile(label_test, 21)             # 21 blocks → total 12600 samples
+    n_classes = 12
+    label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32)  # shape: (12600, 12)
+
+    # Sampling: 10 samples every 500 (per chunk)
+    chunk_size = 500
+    samples_per_chunk = 10
+    num_chunks = data_raw.size(0) // chunk_size
+
+    selected_indices = []
+
+    for i in range(num_chunks):
+        start = i * chunk_size
+        indices = torch.randperm(chunk_size)[:samples_per_chunk] + start
+        selected_indices.append(indices)
+
+    selected_indices = torch.cat(selected_indices)
+
+    # Slice all three tensors
+    data_raw_sampled = data_raw[selected_indices]
+    data_feature_sampled = data_feature[selected_indices]
+    label_test_oh_sampled = label_test_oh[selected_indices]
+    
+    return data_raw_sampled, data_feature_sampled, label_test_oh_sampled
+    
+
+
 def return_data_test():
     # Load data
     train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_test.mat')
@@ -50,9 +86,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 
-def plot_training_loss(training_loss, save_path):
+def plot_training_loss(training_loss, validation_loss, save_path):
     plt.figure(figsize=(8, 5))
     plt.plot(training_loss, label="Training Loss")
+    plt.plot(validation_loss, label="Validation Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Training Loss Over Epochs")
@@ -97,7 +134,7 @@ def plot_accuracy_over_chunks(model, data_raw, data_feature, labels_oh, chunk_si
     plt.savefig(save_path_fig)
     plt.close()
 
-def save_experiment_outputs(model, training_loss,  data_raw, data_feature, labels_oh, device, experiment_name="experiment", chunk_size=500):
+def save_experiment_outputs(model, training_loss, validation_loss,  data_raw, data_feature, labels_oh, device, experiment_name="experiment", chunk_size=500):
     # Create timestamped subfolder name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     folder_name = f"{experiment_name}_{timestamp}"
@@ -111,7 +148,7 @@ def save_experiment_outputs(model, training_loss,  data_raw, data_feature, label
 
     # Save training loss plot
     loss_plot_path = os.path.join(save_dir, "training_loss.png")
-    plot_training_loss(training_loss, loss_plot_path)
+    plot_training_loss(training_loss, validation_loss, loss_plot_path)
     print(f"Training loss plot saved to {loss_plot_path}")
 
     # Save accuracy plot

@@ -9,7 +9,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from utils import return_data_train, save_experiment_outputs, return_data_test
+from utils import return_data_train, save_experiment_outputs, return_data_test, return_data_val
 
 #%%
 
@@ -53,8 +53,11 @@ class StandardModel(nn.Module):
 #get training data
 data_raw, data_feature, label_train_oh = return_data_train()
 
+#get validation data
+data_raw_val, data_feature_val, label_train_oh_val = return_data_val()
+
 # Create Dataset and DataLoader
-dataset = RadioDataset(data_feature, data_raw, label_train_oh)
+dataset = RadioDataset(data_feature[:100], data_raw[0:100], label_train_oh[:100])
 batch_size = 64
 loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -69,8 +72,9 @@ criterion = nn.CrossEntropyLoss()
 #%%
 
 # Training loop
-epochs = 1
+epochs = 10
 training_loss = []
+validation_loss = []
 
 for epoch in range(epochs):
     model.train()
@@ -82,16 +86,25 @@ for epoch in range(epochs):
         batch_Y = batch_Y.to(device)
 
         optimizer.zero_grad()
+        
         predictions = model(batch_X1, batch_X2)
         loss_val = criterion(predictions, batch_Y)
+        
         loss_val.backward()
         optimizer.step()
 
         epoch_loss += loss_val.item()
+        
+    
+    with torch.inference_mode():
+            prediction_val = model(data_feature_val, data_raw_val)
+            val_loss = criterion(prediction_val, label_train_oh_val)
+            validation_loss.append(val_loss)
+    
 
     avg_loss = epoch_loss / len(loader)
     training_loss.append(avg_loss)
-    print(f"Epoch {epoch+1}/{epochs} - Avg Loss: {avg_loss:.4f}")
+    print(f"Epoch {epoch+1}/{epochs} - Avg training Loss: {avg_loss:.4f} - Validation Loss: {val_loss:.4f}")
     
     
 #%%
@@ -101,7 +114,7 @@ for epoch in range(epochs):
 data_raw, data_feature, label_test_oh = return_data_test()
 #save experiment
 experiment_name = f"standard-model_epoch-{epochs}_lr-{lr}_batch-{batch_size}"
-save_experiment_outputs(model, training_loss, data_raw.to(device), data_feature.to(device), label_test_oh.to(device), device, experiment_name=experiment_name, chunk_size=500)
+save_experiment_outputs(model, training_loss, validation_loss, data_raw.to(device), data_feature.to(device), label_test_oh.to(device), device, experiment_name=experiment_name, chunk_size=500)
 
 
 
