@@ -57,7 +57,7 @@ data_raw, data_feature, label_train_oh = return_data_train()
 data_raw_val, data_feature_val, label_train_oh_val = return_data_val()
 
 # Create Dataset and DataLoader
-dataset = RadioDataset(data_feature, data_raw, label_train_oh)
+dataset = RadioDataset(data_feature[:100], data_raw[:100], label_train_oh[:100])
 batch_size = 64
 loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -115,80 +115,6 @@ for epoch in range(epochs):
 data_raw, data_feature, label_test_oh = return_data_test()
 #save experiment
 experiment_name = f"standard-model_epoch-{epochs}_lr-{lr}_batch-{batch_size}"
-save_experiment_outputs(model, training_loss, validation_loss, data_raw.to(device), data_feature.to(device), label_test_oh.to(device), device, experiment_name=experiment_name, chunk_size=500)
+save_experiment_outputs(model, training_loss, validation_loss, data_raw.to(device), data_feature.to(device), label_test_oh.to(device), device, experiment_name=experiment_name, chunk_size=6000)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#%%
-
-"""
-
-# Plot training loss
-plt.figure(figsize=(8, 5))
-plt.plot(training_loss, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-
-#save the model
-
-
-#%% test the model
-
-# Load data
-train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_test.mat')
-data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32).to(device)[125500:,:,:,:]  # shape: (N, 1, 128, 2)
-data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32).to(device)[125500:,:]  # shape: (N, 1, 228)
-
-#%%
-
-# python
-label_base = np.arange(0, 12)
-label_test = label_base.repeat(500)
-label_test = np.tile(label_test, 21)  # the class label of test set
-# modulation_name = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK', '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
-# all_dB = list(np.arange(-20, 21, 2))
-n_classes = 12
-label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32).to(device)[125500:,:]
-label_test_oh = torch.argmax(label_test_oh, dim=1)
-
-#%%
-
-with torch.inference_mode():
-    y_hat_logit = model(data_feature, data_raw)
-    m = nn.Softmax(dim=1)
-    y_hat_probs = m(y_hat_logit)
-    
-    from torchmetrics import Accuracy
-    
-    accuracy = Accuracy(task="multiclass", num_classes=12).to(device)
-    acc = accuracy(y_hat_probs, label_test_oh)
-    print(f"Accuracy: {acc}")
-
-
-# %%
-
-
-"""

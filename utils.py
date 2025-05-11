@@ -125,10 +125,10 @@ def plot_accuracy_over_chunks(model, data_raw, data_feature, labels_oh, chunk_si
     np.save(save_path_data, array_results)        
 
     plt.figure(figsize=(8, 5))
-    plt.plot(np.arange(len(correct)), correct, marker='o')
-    plt.xlabel(f"Chunk (each of size {chunk_size})")
+    plt.plot(np.arange(-20,21,2), correct, marker='o')
+    plt.xlabel(f"SNR (dB)")
     plt.ylabel("Accuracy")
-    plt.title("Accuracy over Data Chunks")
+    plt.title("Accuracy over SNR")
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(save_path_fig)
@@ -156,3 +156,38 @@ def save_experiment_outputs(model, training_loss, validation_loss,  data_raw, da
     data_plot_path = os.path.join(save_dir, "accuracy_chunks_data.npy")
     plot_accuracy_over_chunks(model,  data_raw, data_feature, labels_oh, chunk_size, device, accuracy_plot_path, data_plot_path)
     print(f"Accuracy plot saved to {accuracy_plot_path}")
+
+
+
+
+def plot_accuracy_over_chunks_2(model, data_raw, data_feature, labels_oh, chunk_size, device):
+    model.eval()
+    correct = []
+    with torch.no_grad():
+        for i in range(0, len(data_raw), chunk_size):
+            X1 = data_feature[i:i+chunk_size].to(device)
+            X2 = data_raw[i:i+chunk_size].to(device)
+            #transform one hot encoding into index
+            labels = torch.argmax(labels_oh[i:i+chunk_size], dim=1).to(device)
+            #do inference
+            preds = model(X1, X2)
+            #instantiate softmax
+            m = nn.Softmax(dim=1)
+            #compute probs
+            y_probs = m(preds)
+            #intantiate accuracy
+            acc_fun = Accuracy(task="multiclass", num_classes=y_probs.shape[1]).to(device)
+            #compute accuracy
+            acc = acc_fun(y_probs, labels)
+            #append values to list
+            correct.append(acc.to("cpu"))
+            
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(np.arange(-20,21,2), correct, marker='o')
+    plt.xlabel(f"SNR (dB)")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy over SNR")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
