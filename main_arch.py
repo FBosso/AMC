@@ -66,13 +66,13 @@ loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Instantiate model
 model = StandardModel(228, n_classes).to(device)
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.CrossEntropyLoss()
 
 #%%
 
 # Training loop
-epochs = 30
+epochs = 100
 training_loss = []
 
 for epoch in range(epochs):
@@ -129,7 +129,7 @@ label_test = np.tile(label_test, 21)  # the class label of test set
 # modulation_name = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK', '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
 # all_dB = list(np.arange(-20, 21, 2))
 n_classes = 12
-label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32).to(device)[0:10000,:]
+label_test_oh = torch.tensor(np.eye(n_classes)[label_test], dtype=torch.float32).to(device)[125500:,:]
 label_test_oh = torch.argmax(label_test_oh, dim=1)
 
 #%%
