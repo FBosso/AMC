@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 from torch import nn
 from torchmetrics import Accuracy
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def return_data_train():
     
     # Load data
@@ -76,11 +78,11 @@ def plot_accuracy_over_chunks(model, data_raw, data_feature, labels_oh, chunk_si
             #compute probs
             y_probs = m(preds)
             #intantiate accuracy
-            acc_fun = Accuracy(task="multiclass", num_classes=y_probs.shape[1])
+            acc_fun = Accuracy(task="multiclass", num_classes=y_probs.shape[1]).to(device)
             #compute accuracy
             acc = acc_fun(y_probs, labels)
             #append values to list
-            correct.append(acc)
+            correct.append(acc.to("cpu"))
     #save list
     array_results = np.array(correct)
     np.save(save_path_data, array_results)        
