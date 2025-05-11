@@ -9,6 +9,7 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from utils import return_data_train, save_experiment_outputs, return_data_test
 
 #%%
 
@@ -47,17 +48,10 @@ class StandardModel(nn.Module):
         attention = fusion_out * cat                # (B, 1, 128)
         final_out = self.out(attention).squeeze(1)  # (B, n_classes)
         return final_out
-
-# Load data
-train_data = h5py.File('HKDD_AMC12/HKDD_AMC12_train.mat')
-data_raw = torch.tensor(train_data['XTrainIQ'][:], dtype=torch.float32)  # shape: (N, 1, 128, 2)
-data_feature = torch.tensor(train_data['Feature'][:], dtype=torch.float32)  # shape: (N, 1, 228)
-
-label_base = np.arange(0, 12)
-label_train = label_base.repeat(1000)
-label_train = np.tile(label_train, 21)
-n_classes = 12
-label_train_oh = torch.tensor(np.eye(n_classes)[label_train], dtype=torch.float32)
+    
+    
+#get training data
+data_raw, data_feature, label_train_oh = return_data_train()
 
 # Create Dataset and DataLoader
 dataset = RadioDataset(data_feature, data_raw, label_train_oh)
@@ -65,14 +59,17 @@ batch_size = 64
 loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
 # Instantiate model
-model = StandardModel(228, n_classes).to(device)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+model = StandardModel(228, 12).to(device)
+
+#instantiate potimizer and loss function
+lr = 0.001
+optimizer = optim.Adam(model.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss()
 
 #%%
 
 # Training loop
-epochs = 100
+epochs = 1
 training_loss = []
 
 for epoch in range(epochs):
@@ -95,9 +92,40 @@ for epoch in range(epochs):
     avg_loss = epoch_loss / len(loader)
     training_loss.append(avg_loss)
     print(f"Epoch {epoch+1}/{epochs} - Avg Loss: {avg_loss:.4f}")
+    
+    
+#%%
+# save model and metrics after training
+
+# Load data
+data_raw, data_feature, label_test_oh = return_data_test()
+#save experiment
+experiment_name = f"standard-model_epoch-{epochs}_lr-{lr}_batch-{batch_size}"
+save_experiment_outputs(model, training_loss, data_raw.to(device), data_feature.to(device), label_test_oh.to(device), device, experiment_name=experiment_name, chunk_size=500)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #%%
 
+"""
 
 # Plot training loss
 plt.figure(figsize=(8, 5))
@@ -147,3 +175,6 @@ with torch.inference_mode():
 
 
 # %%
+
+
+"""
