@@ -72,7 +72,7 @@ criterion = nn.CrossEntropyLoss()
 #%%
 
 # Training loop
-epochs = 2
+epochs = 30
 training_loss = []
 validation_loss = []
 
