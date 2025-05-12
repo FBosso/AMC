@@ -1,6 +1,30 @@
 #import section
 from torch import nn
 
+class MLP_hand_features(nn.Module):
+    def __init__(self,features_in):
+        #run init of parent module
+        super().__init__()
+        #define layers
+        self.l1 = nn.Linear(features_in,128)
+        self.l2 = nn.Linear(128,96)
+        self.l3 = nn.Linear(96,64)
+        #define activation function
+        self.act = nn.ReLU()
+    
+    def forward(self,x):
+        #do forward pass
+        x = self.l1(x)
+        x = self.act(x)
+        x = self.l2(x)
+        x = self.act(x)
+        x = self.l3(x)
+        x = self.act(x)
+        
+        return x
+    
+
+
 #create the cnn class
 class IQ_cnn(nn.Module):
     def __init__(self):
@@ -39,35 +63,6 @@ class IQ_cnn(nn.Module):
         
         return x
         
-        
-       
-        
-"""
-class DeptConv(nn.Module):
-    def __init__(self, in_ch, out_ch, k_s, pooling=False):
-        #pooling boolean
-        self.pooling = pooling
-        #run init of parent module
-        super().__init__()
-        #define layers
-        self.channel_wise_kernels = nn.Conv2d(in_ch, out_ch, k_s, groups=in_ch)
-        #point convolution
-        self.point_conv = nn.Conv2d(out_ch, out_ch, (1,1))
-        #pooling
-        self.pooling = nn.MaxPool2d(2,2)
-        #activation
-        self.act = nn.ReLU()
-        
-    def forward(self, x):
-        x = self.channel_wise_kernels(x)
-        x = self.point_conv(x)
-        if self.pooling == True:
-            x = self.pooling(x)
-        x = self.act(x)
-        
-        return x
- """         
-    
 
 class DepthwiseSeparableConv(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1, padding=1, bias=False, pooling=False):

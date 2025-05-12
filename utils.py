@@ -191,3 +191,23 @@ def plot_accuracy_over_chunks_2(model, data_raw, data_feature, labels_oh, chunk_
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
+
+def accuracy_comparison(path_experiment_1, path_experiment_2):
+    name_1 = path_experiment_1.split("_")[0]
+    data_1 = np.load(f"{path_experiment_1}/accuracy_chunks_data.npy")
+    name_2 = path_experiment_2.split("_")[0]
+    data_2 = np.load(f"{path_experiment_2}/accuracy_chunks_data.npy")
+
+    
+    plt.figure(figsize=(8, 5))
+    x = np.arange(-20,21,2)
+    plt.plot(x,data_1, marker='o', label=name_1)
+    plt.plot(x,data_2, marker='*', label=name_2)
+    plt.xlabel(f"SNR (dB)")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy over SNR")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.legend()
+    plt.show()
