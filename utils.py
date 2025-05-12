@@ -6,6 +6,14 @@ from dataset import RadioDataset
 from torch.utils.data import DataLoader
 from torch import nn
 from torchmetrics import Accuracy
+from sklearn.manifold import TSNE
+from matplotlib.colors import to_rgba
+import os
+import matplotlib.pyplot as plt
+from datetime import datetime
+from models import SelfAttnModel, StandardModel
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -78,13 +86,6 @@ def return_data_test():
     
     return data_raw, data_feature, label_test_oh
 
-
-
-import os
-import torch
-import matplotlib.pyplot as plt
-import numpy as np
-from datetime import datetime
 
 def plot_training_loss(training_loss, validation_loss, save_path):
     plt.figure(figsize=(8, 5))
@@ -211,3 +212,95 @@ def accuracy_comparison(path_experiment_1, path_experiment_2):
     plt.tight_layout()
     plt.legend()
     plt.show()
+    
+    
+def plot_tsne_with_snr(input1: torch.Tensor, input2: torch.Tensor, labels: torch.Tensor):
+    """
+    Generates two t-SNE plots from input1 and input2 with color shading based on SNR.
+    
+    Parameters:
+    - input1: Tensor of shape (N, 1, 512, 2)
+    - input2: Tensor of shape (N, 228)
+    - labels: Tensor of shape (N, 12), assumed to be one-hot encoded
+    """
+    assert input1.shape[0] == input2.shape[0] == labels.shape[0], "All inputs must have the same number of samples."
+    N = input1.shape[0]
+    
+    # Flatten input1 to shape (N, 1024)
+    input1_flat = input1.view(N, -1).cpu().numpy()
+    input2_flat = input2.cpu().numpy()
+    labels_np = torch.argmax(labels, dim=1).cpu().numpy()
+
+    # Estimate SNR level for shading (every 6000 samples means we scale over chunks)
+    snr_levels = (np.arange(N) // 6000).astype(np.float32)
+    snr_norm = (snr_levels - snr_levels.min()) / (snr_levels.max() - snr_levels.min() + 1e-8)
+
+    # Colors for each class
+    num_classes = labels.shape[1]
+    base_colors = plt.cm.get_cmap('tab10', num_classes)
+
+    def compute_tsne_and_plot(data, title):
+        tsne = TSNE(n_components=2, random_state=42, perplexity=30)
+        tsne_result = tsne.fit_transform(data)
+
+        plt.figure(figsize=(10, 8))
+        for class_idx in range(num_classes):
+            indices = labels_np == class_idx
+            rgba = np.array([to_rgba(base_colors(class_idx), alpha) for alpha in snr_norm[indices]])
+            plt.scatter(tsne_result[indices, 0], tsne_result[indices, 1],
+                        label=f'Class {class_idx}', c=rgba, s=10)
+        
+        plt.title(title)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+
+    compute_tsne_and_plot(input1_flat, "t-SNE of Input1 (1x512x2)")
+    compute_tsne_and_plot(input2_flat, "t-SNE of Input2 (228)")
+
+    plt.show()
+    
+
+
+def plot_snr_grouped_confusion_matrices(y_true, y_pred):
+    """
+    Plots 4 confusion matrices grouped by SNR ranges: (-20,-10), (-10,0), (0,10), (10,20)
+    
+    Parameters:
+    - y_true: array-like of shape (126000,), ground truth class indices (0-11)
+    - y_pred: array-like of shape (126000,), predicted class indices (0-11)
+    """
+
+    class_names = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK', 
+                   '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
+
+    assert len(y_true) == 126000 and len(y_pred) == 126000, "Input arrays must have 126000 elements."
+
+    # SNR changes every 6000 samples from -20 to 20 dB
+    snr_levels = np.arange(-20, 22, 2)  # 21 SNR levels → 21 x 6000 = 126000 samples
+    snr_per_sample = np.repeat(snr_levels, 6000)
+
+    # SNR Ranges
+    snr_ranges = [(-20, -10), (-10, 0), (0, 10), (10, 20)]
+
+    fig, axs = plt.subplots(2, 2, figsize=(16, 12))
+    axs = axs.flatten()
+
+    for i, (low, high) in enumerate(snr_ranges):
+        # Create a mask for this SNR range (inclusive lower, exclusive upper bound)
+        mask = (snr_per_sample >= low) & (snr_per_sample < high)
+        y_true_range = np.array(y_true)[mask]
+        y_pred_range = np.array(y_pred)[mask]
+
+        # Compute and plot confusion matrix
+        cm = confusion_matrix(y_true_range, y_pred_range, labels=np.arange(12), normalize='true')
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp.plot(ax=axs[i], xticks_rotation=45, cmap='Blues', colorbar=False)
+        axs[i].set_title(f"SNR ∈ [{low}, {high}) dB")
+        axs[i].set_xlabel("Predicted label")
+        axs[i].set_ylabel("True label")
+
+    plt.tight_layout()
+    plt.show()
+
+    
