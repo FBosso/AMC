@@ -214,28 +214,59 @@ def accuracy_comparison(path_experiment_1, path_experiment_2):
     plt.show()
     
     
-def plot_tsne_with_snr(input1: torch.Tensor, input2: torch.Tensor, labels: torch.Tensor):
-    """
-    Generates two t-SNE plots from input1 and input2 with color shading based on SNR.
     
+def plot_tsne_with_snr_balanced(input1: torch.Tensor, input2: torch.Tensor, labels: torch.Tensor, 
+                                 snr_step=6000, samples_per_bin=100):
+    """
+    Generates balanced t-SNE plots from a subsample of input1 and input2, shaded by SNR.
+
     Parameters:
     - input1: Tensor of shape (N, 1, 512, 2)
     - input2: Tensor of shape (N, 228)
-    - labels: Tensor of shape (N, 12), assumed to be one-hot encoded
+    - labels: Tensor of shape (N, 12), one-hot encoded
+    - snr_step: Number of samples per SNR step (default 6000)
+    - samples_per_bin: Number of samples to draw per (class, SNR) bin
     """
-    assert input1.shape[0] == input2.shape[0] == labels.shape[0], "All inputs must have the same number of samples."
+    class_names = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK',
+                   '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
+
     N = input1.shape[0]
-    
-    # Flatten input1 to shape (N, 1024)
+    assert input1.shape[0] == input2.shape[0] == labels.shape[0], "Input shapes mismatch"
+
+    # Prepare data
+    labels_np = torch.argmax(labels, dim=1).cpu().numpy()
     input1_flat = input1.view(N, -1).cpu().numpy()
     input2_flat = input2.cpu().numpy()
-    labels_np = torch.argmax(labels, dim=1).cpu().numpy()
 
-    # Estimate SNR level for shading (every 6000 samples means we scale over chunks)
-    snr_levels = (np.arange(N) // 6000).astype(np.float32)
+    # Compute SNR bins
+    total_snr_bins = N // snr_step
+    snr_levels = (np.arange(N) // snr_step)
     snr_norm = (snr_levels - snr_levels.min()) / (snr_levels.max() - snr_levels.min() + 1e-8)
 
-    # Colors for each class
+    # Balanced sampling: collect indices for each (class, snr_bin) pair
+    selected_indices = []
+    for snr_bin in range(total_snr_bins):
+        for cls in range(12):
+            bin_mask = (snr_levels == snr_bin) & (labels_np == cls)
+            bin_indices = np.where(bin_mask)[0]
+            if len(bin_indices) >= samples_per_bin:
+                chosen = np.random.choice(bin_indices, samples_per_bin, replace=False)
+            else:
+                chosen = np.random.choice(bin_indices, min(len(bin_indices), samples_per_bin), replace=True)
+            selected_indices.extend(chosen)
+    
+    # Subset data
+    selected_indices = np.array(selected_indices)
+    x1 = input1_flat[selected_indices]
+    x2 = input2_flat[selected_indices]
+    y = labels_np[selected_indices]
+    
+    # Enhance SNR-based alpha shading
+    snr_raw = snr_norm[selected_indices]
+    alpha_power = 2  # Emphasize opacity contrast
+    snr_selected = snr_raw ** alpha_power
+
+    # Define colors
     num_classes = labels.shape[1]
     base_colors = plt.cm.get_cmap('tab10', num_classes)
 
@@ -245,20 +276,24 @@ def plot_tsne_with_snr(input1: torch.Tensor, input2: torch.Tensor, labels: torch
 
         plt.figure(figsize=(10, 8))
         for class_idx in range(num_classes):
-            indices = labels_np == class_idx
-            rgba = np.array([to_rgba(base_colors(class_idx), alpha) for alpha in snr_norm[indices]])
+            indices = y == class_idx
+            rgba = np.array([to_rgba(base_colors(class_idx), alpha) for alpha in snr_selected[indices]])
             plt.scatter(tsne_result[indices, 0], tsne_result[indices, 1],
-                        label=f'Class {class_idx}', c=rgba, s=10)
-        
+                        c=rgba, s=10)
+
+            # Dummy scatter for legend with full opacity
+            plt.scatter([], [], color=base_colors(class_idx), label=class_names[class_idx])
+
         plt.title(title)
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
 
-    compute_tsne_and_plot(input1_flat, "t-SNE of Input1 (1x512x2)")
-    compute_tsne_and_plot(input2_flat, "t-SNE of Input2 (228)")
-
+    compute_tsne_and_plot(x1, "Balanced t-SNE of Input1 (1x512x2)")
+    compute_tsne_and_plot(x2, "Balanced t-SNE of Input2 (228)")
     plt.show()
+
+
     
 
 
@@ -310,4 +345,21 @@ def plot_snr_grouped_confusion_matrices(y_true, y_pred):
 
     plt.tight_layout()
     fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.015, pad=0.02)
+    plt.show()
+
+
+def plot_attention_maps(data_features, data_raw):
+    
+    model_standard = StandardModel(228,12)
+    attention_standard = model_standard(data_features,data_raw,return_attention=True)
+    attention_standard = np.array(attention_standard.to("cpu").detach())
+    plt.imshow(attention_standard)
+    plt.show()
+    
+    model_self = SelfAttnModel(228,12)
+    attention_self = model_self(data_features,data_raw,return_attention=True)
+    attention_self = np.array(attention_self.to("cpu").detach())
+    plt.figure(figsize=(6, 6))
+    plt.imshow(attention_self)
+    plt.axis('off')
     plt.show()

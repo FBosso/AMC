@@ -58,7 +58,7 @@ class FusionSelfAttn(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
         return pe.unsqueeze(0)  # Shape: (1, seq_len, d_model)
 
-    def forward(self, x):
+    def forward(self, x, return_attention=False):
         """
         x: Tensor of shape (N, 128)
         """
@@ -87,4 +87,8 @@ class FusionSelfAttn(nn.Module):
 
         # Final classification
         logits = self.output_proj(pooled)  # (N, num_classes)
+        
+        if return_attention == True:
+            return attn_weights
+        
         return logits
