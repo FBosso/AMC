@@ -58,7 +58,7 @@ with torch.no_grad():
 
 
 
-#plot_snr_grouped_confusion_matrices(all_preds,all_true)
+plot_snr_grouped_confusion_matrices(all_preds,all_true)
     
 # %%
 

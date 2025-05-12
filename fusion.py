@@ -92,3 +92,58 @@ class FusionSelfAttn(nn.Module):
             return attn_weights
         
         return logits
+
+
+
+class FusionCrossAttn(nn.Module):
+    def __init__(self, input_dim=128, chunk_size=32, d_model=10, num_classes=10):
+        super(FusionCrossAttn, self).__init__()
+        assert input_dim == 128, "Input must be 128-dim for fixed split"
+        assert chunk_size == 32, "Currently assumes chunk_size of 32"
+
+        self.chunk_size = chunk_size
+        self.d_model = d_model
+
+        self.num_tokens_half = 64 // chunk_size  # = 2 tokens per half
+
+        # Projections for Q, K, V (Query from the second half, Key and Value from the first half)
+        self.q_proj = nn.Linear(chunk_size, d_model)
+        self.k_proj = nn.Linear(chunk_size, d_model)
+        self.v_proj = nn.Linear(chunk_size, d_model)
+
+        self.output_proj = nn.Linear(d_model, num_classes)
+
+    def forward(self, x, return_attention=False):
+        """
+        x: Tensor of shape (N, 128)
+        """
+        N = x.size(0)
+
+        # Split input into two halves
+        query_input = x[:, 64:]  # (N, 64)
+        keyval_input = x[:, :64]  # (N, 64)
+
+        # Reshape into (N, 2, 32)
+        query_tokens = query_input.view(N, self.num_tokens_half, self.chunk_size)
+        kv_tokens = keyval_input.view(N, self.num_tokens_half, self.chunk_size)
+
+        # Linear projections
+        Q = self.q_proj(query_tokens)  # (N, 2, d_model)
+        K = self.k_proj(kv_tokens)    # (N, 2, d_model)
+        V = self.v_proj(kv_tokens)    # (N, 2, d_model)
+
+        # Cross-attention: Q from query, K and V from key/value
+        attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.d_model)  # (N, 2, 2)
+        attn_weights = F.softmax(attn_scores, dim=-1)  # (N, 2, 2)
+        attn_output = torch.matmul(attn_weights, V)    # (N, 2, d_model)
+
+        # Aggregate
+        pooled = attn_output.mean(dim=1)  # (N, d_model)
+
+        # Final classification
+        logits = self.output_proj(pooled)  # (N, num_classes)
+
+        if return_attention:
+            return attn_weights
+
+        return logits
