@@ -264,43 +264,50 @@ def plot_tsne_with_snr(input1: torch.Tensor, input2: torch.Tensor, labels: torch
 
 def plot_snr_grouped_confusion_matrices(y_true, y_pred):
     """
-    Plots 4 confusion matrices grouped by SNR ranges: (-20,-10), (-10,0), (0,10), (10,20)
-    
+    Plots 4 lightweight confusion matrices grouped by SNR ranges: (-20,-10), (-10,0), (0,10), (10,20)
+
     Parameters:
     - y_true: array-like of shape (126000,), ground truth class indices (0-11)
     - y_pred: array-like of shape (126000,), predicted class indices (0-11)
     """
-
-    class_names = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK', 
+    class_names = ['BPSK', 'QPSK', '8PSK', 'OQPSK', '2FSK', '4FSK',
                    '8FSK', '16QAM', '32QAM', '64QAM', '4PAM', '8PAM']
 
-    assert len(y_true) == 126000 and len(y_pred) == 126000, "Input arrays must have 126000 elements."
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
 
-    # SNR changes every 6000 samples from -20 to 20 dB
-    snr_levels = np.arange(-20, 22, 2)  # 21 SNR levels → 21 x 6000 = 126000 samples
-    snr_per_sample = np.repeat(snr_levels, 6000)
+    # Generate SNR per sample
+    snr_levels = np.arange(-20, 22, 2)  # [-20, -18, ..., 20], 21 steps
+    snr_per_sample = np.repeat(snr_levels, 6000)  # 126000 entries
 
-    # SNR Ranges
     snr_ranges = [(-20, -10), (-10, 0), (0, 10), (10, 20)]
 
-    fig, axs = plt.subplots(2, 2, figsize=(16, 12))
+    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
     axs = axs.flatten()
 
-    for i, (low, high) in enumerate(snr_ranges):
-        # Create a mask for this SNR range (inclusive lower, exclusive upper bound)
+    for idx, (low, high) in enumerate(snr_ranges):
         mask = (snr_per_sample >= low) & (snr_per_sample < high)
-        y_true_range = np.array(y_true)[mask]
-        y_pred_range = np.array(y_pred)[mask]
+        y_true_range = y_true[mask]
+        y_pred_range = y_pred[mask]
 
-        # Compute and plot confusion matrix
         cm = confusion_matrix(y_true_range, y_pred_range, labels=np.arange(12), normalize='true')
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-        disp.plot(ax=axs[i], xticks_rotation=45, cmap='Blues', colorbar=False)
-        axs[i].set_title(f"SNR ∈ [{low}, {high}) dB")
-        axs[i].set_xlabel("Predicted label")
-        axs[i].set_ylabel("True label")
+
+        ax = axs[idx]
+        im = ax.imshow(cm, interpolation='nearest', cmap='Blues', vmin=0, vmax=1)
+        ax.set_title(f"SNR ∈ [{low}, {high}) dB", fontsize=12)
+        ax.set_xticks(np.arange(len(class_names)))
+        ax.set_yticks(np.arange(len(class_names)))
+        ax.set_xticklabels(class_names, rotation=45, ha='right')
+        ax.set_yticklabels(class_names)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                val = cm[i, j]
+                if val > 0.01:
+                    ax.text(j, i, f"{val:.2f}", ha='center', va='center', fontsize=7, color='black')
 
     plt.tight_layout()
+    fig.colorbar(im, ax=axs, orientation='vertical', fraction=0.015, pad=0.02)
     plt.show()
-
-    
