@@ -2,11 +2,7 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
 from dataset import RadioDataset
-
-from fusion import Fusion
 from torch import optim, nn
-import numpy as np
-import h5py
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from utils import return_data_train, save_experiment_outputs, return_data_test, return_data_val

@@ -23,8 +23,6 @@ class MLP_hand_features(nn.Module):
         
         return x
     
-
-
 #create the cnn class
 class IQ_cnn(nn.Module):
     def __init__(self):
