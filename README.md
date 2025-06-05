@@ -16,7 +16,7 @@ The architecture reproduced in this project combines both perspectives by proces
 
 This implementation maintains the dual-stream encoder design but replaces the dense fusion layer with two alternative mechanisms: self-attention and cross-attention. In the cross-attention setup, the handcrafted features are used as the `Query` while the raw IQ data act as `Key` and `Value`. These attention-based strategies allow for more dynamic and flexible integration between the two modalities, aiming to improve classification accuracy and interpretability.
 
-<img src="plots/accuracy.png".png" alt="accuracy comparison plot" width="100%">
+<img src="plots/accuracy.png" alt="accuracy comparison plot" width="100%">
 
 ## Dependencies  
 All required libraries are listed in the `requirements.txt` file. To install them, run:
