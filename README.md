@@ -1,5 +1,5 @@
 # Self-Attention Based Automatic Modulation Classification  
-<a href="https://mapflap.github.io"><img align="right" src="https://i.ibb.co/NspjQxV/logo.webp" alt="logo" width="220"></a>
+<a href="https://francesco-bosso.github.io"><img align="right" src="https://francesco-bosso.github.io/ico_pizza.ico" alt="logo" width="220"></a>
 
 ## Overview
 
