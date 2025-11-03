@@ -2,7 +2,13 @@
 
 ## Overview
 
-<a href="https://francesco-bosso.github.io"><img align="right" src="https://francesco-bosso.github.io/ico_pizza.ico" alt="logo" width="220"></a>
+<a href="https://francesco-bosso.github.io">
+  <img src="https://francesco-bosso.github.io/ico_pizza.ico" 
+       alt="logo" 
+       align="right" 
+       width="120" 
+       style="margin-left: 15px; margin-bottom: 10px;">
+</a>
 
 *This repository contains a reimplementation and extension of a deep learning framework for automatic modulation classification, inspired by the paper [Toward Next-Generation Signal Intelligence](https://ieeexplore.ieee.org/document/10042021). The original architecture combines a CNN for raw IQ samples with an MLP for handcrafted features, which are fused before classification. This project replicates the original setup and replaces the fusion mechanism with self-attention and cross-attention modules to enhance feature integration.*
 
